@@ -66,8 +66,8 @@ def command(context, name, tag, type, region, machine_size, image, wait_for_ip, 
     _validate_image(image)
 
     tags = [
-        f"machine-type-{type}",
-        "machine-created",
+        f"machine:type:{type}",
+        "machine:created",
     ]
     if tag:
         tags.append(tag)
