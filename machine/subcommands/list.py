@@ -6,10 +6,23 @@ from machine.log import fatal_error
 from machine.types import MainCmdCtx, TAG_MACHINE_TYPE_PREFIX, TAG_MACHINE_CREATED
 
 
+def get_type(droplet):
+    type = next((t for t in droplet.tags if TAG_MACHINE_TYPE_PREFIX in t), "").replace(
+        TAG_MACHINE_TYPE_PREFIX, ""
+    )
+    if not type:
+        return None
+    return type
+
+
+def is_machine_created(droplet):
+    return TAG_MACHINE_CREATED in droplet.tags
+
+
 def print_normal(droplets):
     for droplet in droplets:
         print(
-            f"{droplet.name} ({droplet.id}, {droplet.region['slug']}): {droplet.ip_address}"
+            f"{droplet.name} ({droplet.id}, {droplet.region['slug']}, {get_type(droplet)}): {droplet.ip_address}"
         )
 
 
@@ -27,9 +40,7 @@ def print_json(droplets):
             "tags": d.tags,
             "region": d.region["slug"],
             "ip": d.ip_address,
-            "type": next(
-                (t for t in d.tags if TAG_MACHINE_TYPE_PREFIX in t), ""
-            ).replace(TAG_MACHINE_TYPE_PREFIX, ""),
+            "type": get_type(d),
         }
         simplified.append(simple)
     print(json.dumps(simplified))
@@ -81,10 +92,7 @@ def command(context, name, tag, type, region, all, output, quiet, unique):
         droplets = filter(lambda d: region == d.region["slug"], droplets)
 
     if not all:
-        droplets = filter(
-            lambda d: next((t for t in d.tags if TAG_MACHINE_CREATED in t), None),
-            droplets,
-        )
+        droplets = filter(lambda d: is_machine_created(d), droplets)
 
     droplets = list(droplets)
 
