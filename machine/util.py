@@ -1,5 +1,5 @@
-
 from digitalocean import Domain, Manager, Project, SSHKey
+from machine.types import TAG_MACHINE_TYPE_PREFIX, TAG_MACHINE_CREATED
 
 
 def projectFromName(manager: Manager, name: str) -> Project:
@@ -24,3 +24,16 @@ def dnsRecordIdFromName(domain: Domain, name: str) -> str:
         if record.name == name:
             return record.id
     return None
+
+
+def get_machine_type(droplet):
+    type = next((t for t in droplet.tags if TAG_MACHINE_TYPE_PREFIX in t), "").replace(
+        TAG_MACHINE_TYPE_PREFIX, ""
+    )
+    if not type:
+        return None
+    return type
+
+
+def is_machine_created(droplet):
+    return TAG_MACHINE_CREATED in droplet.tags

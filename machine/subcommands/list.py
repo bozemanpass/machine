@@ -4,25 +4,13 @@ import digitalocean
 
 from machine.log import fatal_error
 from machine.types import MainCmdCtx, TAG_MACHINE_TYPE_PREFIX, TAG_MACHINE_CREATED
-
-
-def get_type(droplet):
-    type = next((t for t in droplet.tags if TAG_MACHINE_TYPE_PREFIX in t), "").replace(
-        TAG_MACHINE_TYPE_PREFIX, ""
-    )
-    if not type:
-        return None
-    return type
-
-
-def is_machine_created(droplet):
-    return TAG_MACHINE_CREATED in droplet.tags
+from machine.util import get_machine_type, is_machine_created
 
 
 def print_normal(droplets):
     for droplet in droplets:
         print(
-            f"{droplet.name} ({droplet.id}, {droplet.region['slug']}, {get_type(droplet)}): {droplet.ip_address}"
+            f"{droplet.name} ({droplet.id}, {droplet.region['slug']}, {get_machine_type(droplet)}): {droplet.ip_address}"
         )
 
 
@@ -40,7 +28,7 @@ def print_json(droplets):
             "tags": d.tags,
             "region": d.region["slug"],
             "ip": d.ip_address,
-            "type": get_type(d),
+            "type": get_machine_type(d),
         }
         simplified.append(simple)
     print(json.dumps(simplified))
@@ -53,7 +41,10 @@ def print_json(droplets):
 @click.option("--region", "-r", metavar="<REGION>", help="Filter by region")
 @click.option("--output", "-o", metavar="<FORMAT>", help="Output format")
 @click.option(
-    "--all/--not-all", default=False, help="Include machines not created by this tool"
+    "--include-non-machine",
+    is_flag=True,
+    default=False,
+    help="Include machines not created by this tool",
 )
 @click.option(
     "--quiet", "-q", is_flag=True, default=False, help="Only display machine IDs"
@@ -65,7 +56,9 @@ def print_json(droplets):
     help="Return an error if there is more than one match",
 )
 @click.pass_context
-def command(context, name, tag, type, region, all, output, quiet, unique):
+def command(
+    context, name, tag, type, region, include_non_machine, output, quiet, unique
+):
     command_context: MainCmdCtx = context.obj
     manager = digitalocean.Manager(token=command_context.config.access_token)
 
@@ -91,7 +84,7 @@ def command(context, name, tag, type, region, all, output, quiet, unique):
     if region:
         droplets = filter(lambda d: region == d.region["slug"], droplets)
 
-    if not all:
+    if not include_non_machine:
         droplets = filter(lambda d: is_machine_created(d), droplets)
 
     droplets = list(droplets)
