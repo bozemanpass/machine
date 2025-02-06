@@ -65,13 +65,20 @@ def command(context, name, tag, type, region, machine_size, image, wait_for_ip, 
     _validate_region(region)
     _validate_image(image)
 
+    tags = [
+        f"machine-type-{type}",
+        "machine-created",
+    ]
+    if tag:
+        tags.append(tag)
+
     droplet = digitalocean.Droplet(token=config.access_token,
                                    name=name,
                                    region=region if region is not None else config.region,
                                    image=image if image is not None else config.image,
                                    size_slug=machine_size if machine_size is not None else config.machine_size,
                                    ssh_keys=[ssh_key],
-                                   tags=[tag] if tag else [],
+                                   tags=tags,
                                    user_data=user_data,
                                    backups=False)
     # Create the droplet
