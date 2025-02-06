@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+TAG_MACHINE_CREATED = "machine:created"
+TAG_MACHINE_TYPE_PREFIX = "machine:type:"
 
 @dataclass
 class CliOptions:

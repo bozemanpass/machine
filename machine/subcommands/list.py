@@ -3,7 +3,7 @@ import json
 import digitalocean
 
 from machine.log import fatal_error
-from machine.types import MainCmdCtx
+from machine.types import MainCmdCtx, TAG_MACHINE_TYPE_PREFIX, TAG_MACHINE_CREATED
 
 
 def print_normal(droplets):
@@ -27,9 +27,9 @@ def print_json(droplets):
             "tags": d.tags,
             "region": d.region["slug"],
             "ip": d.ip_address,
-            "type": next((t for t in d.tags if "machine:type:" in t), "").replace(
-                "machine:type:", ""
-            ),
+            "type": next(
+                (t for t in d.tags if TAG_MACHINE_TYPE_PREFIX in t), ""
+            ).replace(TAG_MACHINE_TYPE_PREFIX, ""),
         }
         simplified.append(simple)
     print(json.dumps(simplified))
@@ -63,7 +63,7 @@ def command(context, name, tag, type, region, all, output, quiet, unique):
     elif tag:
         droplets = manager.get_all_droplets(tag_name=tag)
     elif type:
-        droplets = manager.get_all_droplets(tag_name=f"machine:type:{type}")
+        droplets = manager.get_all_droplets(tag_name=TAG_MACHINE_TYPE_PREFIX + type)
     else:
         droplets = manager.get_all_droplets()
 
@@ -75,14 +75,14 @@ def command(context, name, tag, type, region, all, output, quiet, unique):
         droplets = filter(lambda d: tag in d.tags, droplets)
 
     if type:
-        droplets = filter(lambda d: f"machine:type:{type}" in d.tags, droplets)
+        droplets = filter(lambda d: TAG_MACHINE_TYPE_PREFIX + type in d.tags, droplets)
 
     if region:
         droplets = filter(lambda d: region == d.region["slug"], droplets)
 
     if not all:
         droplets = filter(
-            lambda d: next((t for t in d.tags if "machine:created" in t), None),
+            lambda d: next((t for t in d.tags if TAG_MACHINE_CREATED in t), None),
             droplets,
         )
 

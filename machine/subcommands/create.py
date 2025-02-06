@@ -5,7 +5,7 @@ import time
 from machine.config import get_machine
 from machine.di import d
 from machine.log import fatal_error, info, debug
-from machine.types import MainCmdCtx
+from machine.types import MainCmdCtx, TAG_MACHINE_CREATED, TAG_MACHINE_TYPE_PREFIX
 from machine.util import projectFromName, sshKeyFromName
 from machine.cloud_config import get_user_data
 
@@ -66,8 +66,8 @@ def command(context, name, tag, type, region, machine_size, image, wait_for_ip, 
     _validate_image(image)
 
     tags = [
-        f"machine:type:{type}",
-        "machine:created",
+        TAG_MACHINE_TYPE_PREFIX + type,
+        TAG_MACHINE_CREATED,
     ]
     if tag:
         tags.append(tag)
