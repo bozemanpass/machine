@@ -11,14 +11,14 @@ from machine.types import MainCmdCtx
 @click.option("--confirm/--no-confirm", default=True)
 @click.option("--delete-dns/--no-delete-dns", default=True)
 @click.option(
-    "--include-non-machine",
+    "--include-unmanaged",
     is_flag=True,
     default=False,
     help="Include machines not created by this tool",
 )
 @click.argument("droplet-ids", nargs=-1)
 @click.pass_context
-def command(context, confirm, delete_dns, include_non_machine, droplet_ids):
+def command(context, confirm, delete_dns, include_unmanaged, droplet_ids):
     command_context: MainCmdCtx = context.obj
     config = command_context.config
     manager = digitalocean.Manager(token=config.access_token)
@@ -29,7 +29,7 @@ def command(context, confirm, delete_dns, include_non_machine, droplet_ids):
             fatal_error(f"Error: machine with id {droplet_id} not found")
         name = droplet.name
 
-        if not is_machine_created(droplet) and not include_non_machine:
+        if not is_machine_created(droplet) and not include_unmanaged:
             fatal_error(
                 f'ERROR: Cannot destroy droplet "{name}" (id: {droplet.id}), it was not created by machine.'
             )

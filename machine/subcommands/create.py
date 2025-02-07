@@ -122,7 +122,8 @@ def command(context, name, tag, type, region, machine_size, image, wait_for_ip, 
             type='A',
             ttl=60*5,
             name=host,
-            data=ip_address
+            data=ip_address,
+            tag=TAG_MACHINE_CREATED
             )
         if record:
             if d.opt.verbose:

@@ -35,13 +35,14 @@ def print_json(droplets):
 
 
 @click.command(help="List machines")
+@click.option("--id", metavar="<MACHINE-ID>", help="Filter by id")
 @click.option("--name", "-n", metavar="<MACHINE-NAME>", help="Filter by name")
 @click.option("--tag", "-t", metavar="<TAG-TEXT>", help="Filter by tag")
 @click.option("--type", "-m", metavar="<MACHINE-TYPE>", help="Filter by type")
 @click.option("--region", "-r", metavar="<REGION>", help="Filter by region")
 @click.option("--output", "-o", metavar="<FORMAT>", help="Output format")
 @click.option(
-    "--include-non-machine",
+    "--include-unmanaged",
     is_flag=True,
     default=False,
     help="Include machines not created by this tool",
@@ -57,12 +58,17 @@ def print_json(droplets):
 )
 @click.pass_context
 def command(
-    context, name, tag, type, region, include_non_machine, output, quiet, unique
+    context, id, name, tag, type, region, include_unmanaged, output, quiet, unique
 ):
     command_context: MainCmdCtx = context.obj
     manager = digitalocean.Manager(token=command_context.config.access_token)
 
-    if name:
+    droplets = []
+    if id:
+        droplet = manager.get_droplet(id)
+        if droplet:
+            droplets.append(droplet)
+    elif name:
         droplets = manager.get_all_droplets(params={"name": name})
     elif tag:
         droplets = manager.get_all_droplets(tag_name=tag)
@@ -84,7 +90,7 @@ def command(
     if region:
         droplets = filter(lambda d: region == d.region["slug"], droplets)
 
-    if not include_non_machine:
+    if not include_unmanaged:
         droplets = filter(lambda d: is_machine_created(d), droplets)
 
     droplets = list(droplets)

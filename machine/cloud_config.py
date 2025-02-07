@@ -7,9 +7,13 @@ def get_user_data(manager: Manager, ssh_key_name: str, fqdn: str, machine_config
     if not fqdn:
         fqdn = ""
 
+    script_args = machine_config.script_args
+    if not script_args:
+        script_args = ""
+
     ssh_key = sshKeyFromName(manager, ssh_key_name)
     ssh_public_key = ssh_key.public_key
-    escaped_args = machine_config.script_args.replace('"', '\\"')
+    escaped_args = script_args.replace('"', '\\"')
     return f"""#cloud-config
 users:
   - name: {machine_config.new_user_name}
