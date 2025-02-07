@@ -30,9 +30,7 @@ def command(context, confirm, delete_dns, include_unmanaged, droplet_ids):
         name = droplet.name
 
         if not is_machine_created(droplet) and not include_unmanaged:
-            fatal_error(
-                f'ERROR: Cannot destroy droplet "{name}" (id: {droplet.id}), it was not created by machine.'
-            )
+            fatal_error(f'ERROR: Cannot destroy droplet "{name}" (id: {droplet.id}), it was not created by machine.')
 
         if confirm:
             print(
@@ -51,9 +49,7 @@ def command(context, confirm, delete_dns, include_unmanaged, droplet_ids):
                 debug(f"Deleting host record {host}.{zone}")
             domain = digitalocean.Domain(token=config.access_token, name=zone)
             if not domain:
-                fatal_error(
-                    f"Error: Domain {domain} does not exist, machine destroyed but DNS record not removed"
-                )
+                fatal_error(f"Error: Domain {domain} does not exist, machine destroyed but DNS record not removed")
             record_id = dnsRecordIdFromName(domain, name)
             if d.opt.debug:
                 debug(f"Deleting dns record id={record_id}")

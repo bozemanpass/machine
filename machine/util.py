@@ -27,9 +27,7 @@ def dnsRecordIdFromName(domain: Domain, name: str) -> str:
 
 
 def get_machine_type(droplet):
-    type = next((t for t in droplet.tags if TAG_MACHINE_TYPE_PREFIX in t), "").replace(
-        TAG_MACHINE_TYPE_PREFIX, ""
-    )
+    type = next((t for t in droplet.tags if TAG_MACHINE_TYPE_PREFIX in t), "").replace(TAG_MACHINE_TYPE_PREFIX, "")
     if not type:
         return None
     return type

@@ -2,3 +2,5 @@ click==8.1.7
 python-digitalocean==1.17.0
 ruamel.yaml==0.17.32
 ruamel.yaml.clib==0.2.7
+flake8
+black

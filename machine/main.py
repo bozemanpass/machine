@@ -1,4 +1,3 @@
-
 import click
 from machine import config
 from machine import constants
@@ -6,7 +5,7 @@ from machine.di import d
 from machine.types import CliOptions, MainCmdCtx
 from machine.subcommands import create, destroy, list, projects, ssh_keys, domains, list_domain
 
-CLICK_CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+CLICK_CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.group(context_settings=CLICK_CONTEXT_SETTINGS)

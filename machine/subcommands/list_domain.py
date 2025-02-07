@@ -1,12 +1,9 @@
-
 import click
 import digitalocean
 import json
 
 from machine.log import fatal_error
-from machine.types import MainCmdCtx
-
-from machine.types import TAG_MACHINE_TYPE_PREFIX, TAG_MACHINE_CREATED
+from machine.types import MainCmdCtx, TAG_MACHINE_CREATED
 
 
 def print_normal(records, zone):
@@ -39,16 +36,14 @@ def print_json(records, droplets, zone):
 @click.option("--name", "-n", metavar="<RECORD-NAME>", help="Filter by name")
 @click.option("--type", "-m", metavar="<RECORD-TYPE>", help="Filter by type (default A and AAA)")
 @click.option("--output", "-o", metavar="<FORMAT>", help="Output format")
-@click.option(
-    "--quiet", "-q", is_flag=True, default=False, help="Only display machine IDs"
-)
+@click.option("--quiet", "-q", is_flag=True, default=False, help="Only display machine IDs")
 @click.option(
     "--include-unmanaged",
     is_flag=True,
     default=False,
     help="Include records not created by this tool",
 )
-@click.argument('zone', required=False)
+@click.argument("zone", required=False)
 @click.pass_context
 def command(context, name, type, output, quiet, include_unmanaged, zone):
     command_context: MainCmdCtx = context.obj
@@ -69,9 +64,8 @@ def command(context, name, type, output, quiet, include_unmanaged, zone):
     if not include_unmanaged:
         manager = digitalocean.Manager(token=command_context.config.access_token)
         droplets = manager.get_all_droplets(tag_name=TAG_MACHINE_CREATED)
-        droplet_ips = [ d.ip_address for d in droplets ]
+        droplet_ips = [d.ip_address for d in droplets]
         records = filter(lambda r: r.data in droplet_ips, records)
-
 
     records = list(records)
     if output == "json":

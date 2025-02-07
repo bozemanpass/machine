@@ -1,4 +1,3 @@
-
 import click
 import digitalocean
 from machine.log import output

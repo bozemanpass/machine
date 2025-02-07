@@ -1,4 +1,3 @@
-
 from machine.types import MachineConfig
 from machine.util import Manager, sshKeyFromName
 

@@ -3,15 +3,13 @@ import json
 import digitalocean
 
 from machine.log import fatal_error
-from machine.types import MainCmdCtx, TAG_MACHINE_TYPE_PREFIX, TAG_MACHINE_CREATED
+from machine.types import MainCmdCtx, TAG_MACHINE_TYPE_PREFIX
 from machine.util import get_machine_type, is_machine_created
 
 
 def print_normal(droplets):
     for droplet in droplets:
-        print(
-            f"{droplet.name} ({droplet.id}, {droplet.region['slug']}, {get_machine_type(droplet)}): {droplet.ip_address}"
-        )
+        print(f"{droplet.name} ({droplet.id}, {droplet.region['slug']}, {get_machine_type(droplet)}): {droplet.ip_address}")
 
 
 def print_quiet(droplets):
@@ -47,9 +45,7 @@ def print_json(droplets):
     default=False,
     help="Include machines not created by this tool",
 )
-@click.option(
-    "--quiet", "-q", is_flag=True, default=False, help="Only display machine IDs"
-)
+@click.option("--quiet", "-q", is_flag=True, default=False, help="Only display machine IDs")
 @click.option(
     "--unique",
     is_flag=True,
@@ -57,9 +53,7 @@ def print_json(droplets):
     help="Return an error if there is more than one match",
 )
 @click.pass_context
-def command(
-    context, id, name, tag, type, region, include_unmanaged, output, quiet, unique
-):
+def command(context, id, name, tag, type, region, include_unmanaged, output, quiet, unique):
     command_context: MainCmdCtx = context.obj
     manager = digitalocean.Manager(token=command_context.config.access_token)
 
@@ -96,9 +90,7 @@ def command(
     droplets = list(droplets)
 
     if unique and len(droplets) > 1:
-        fatal_error(
-            f"ERROR: --unique match required but {len(droplets)} matches found."
-        )
+        fatal_error(f"ERROR: --unique match required but {len(droplets)} matches found.")
 
     if output == "json":
         print_json(droplets)

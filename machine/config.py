@@ -1,5 +1,3 @@
-
-
 import os
 from pathlib import Path
 from machine.di import d
@@ -30,8 +28,15 @@ def _load_config_data(config_file_name: str):
 def get(config_file_name: str) -> Config:
     config = _load_config_data(config_file_name)
     config_do = config["digital-ocean"]
-    return Config(config_do["access-token"], config_do["ssh-key"], config_do.get("dns-zone"), config_do["machine-size"],
-                  config_do["image"], config_do["region"], config_do["project"])
+    return Config(
+        config_do["access-token"],
+        config_do["ssh-key"],
+        config_do.get("dns-zone"),
+        config_do["machine-size"],
+        config_do["image"],
+        config_do["region"],
+        config_do["project"],
+    )
 
 
 def get_machine(name: str) -> MachineConfig:
