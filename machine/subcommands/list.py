@@ -67,7 +67,7 @@ def command(
     elif tag:
         droplets = manager.get_all_droplets(tag_name=tag)
     elif type:
-        droplets = manager.get_all_droplets(tag_name=TAG_MACHINE_TYPE_PREFIX + type)
+        droplets = manager.get_all_droplets(tag_name=TAG_MACHINE_TYPE_PREFIX + type.lower())
     else:
         droplets = manager.get_all_droplets()
 
@@ -79,7 +79,7 @@ def command(
         droplets = filter(lambda d: tag in d.tags, droplets)
 
     if type:
-        droplets = filter(lambda d: TAG_MACHINE_TYPE_PREFIX + type in d.tags, droplets)
+        droplets = filter(lambda d: TAG_MACHINE_TYPE_PREFIX + type.lower() in d.tags, droplets)
 
     if region:
         droplets = filter(lambda d: region == d.region["slug"], droplets)

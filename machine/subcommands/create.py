@@ -64,7 +64,7 @@ def command(context, name, tag, type, region, machine_size, image, wait_for_ip, 
     _validate_image(image)
 
     tags = [
-        TAG_MACHINE_TYPE_PREFIX + type,
+        TAG_MACHINE_TYPE_PREFIX + type.lower(),
         TAG_MACHINE_CREATED,
     ]
     if tag:
