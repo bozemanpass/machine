@@ -4,6 +4,8 @@ from machine.util import Manager, sshKeyFromName
 
 
 def get_user_data(manager: Manager, ssh_key_name: str, fqdn: str, machine_config: MachineConfig):
+    if not fqdn:
+        fqdn = ""
 
     ssh_key = sshKeyFromName(manager, ssh_key_name)
     ssh_public_key = ssh_key.public_key

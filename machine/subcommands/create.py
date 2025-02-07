@@ -43,9 +43,6 @@ def command(context, name, tag, type, region, machine_size, image, wait_for_ip, 
     if update_dns and not config.dns_zone:
         fatal_error("Error: DNS update requested but no zone configured")
 
-    fqdn = name
-    if config.dns_zone:
-        fqdn = f"{name}.{config.dns_zone}"
 
     manager = digitalocean.Manager(token=command_context.config.access_token)
 
@@ -55,6 +52,7 @@ def command(context, name, tag, type, region, machine_size, image, wait_for_ip, 
         machine_config = get_machine(type)
         if not machine_config:
             fatal_error(f"Error: machine type {type} is not defined")
+        fqdn = f"{name}.{config.dns_zone}" if config.dns_zone else None
         user_data = get_user_data(manager, config.ssh_key, fqdn, machine_config)
         if d.opt.debug:
             info("user-data is:")
