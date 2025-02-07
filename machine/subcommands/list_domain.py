@@ -34,7 +34,7 @@ def print_json(records, droplets, zone):
 
 @click.command(help="List domain records")
 @click.option("--name", "-n", metavar="<RECORD-NAME>", help="Filter by name")
-@click.option("--type", "-m", metavar="<RECORD-TYPE>", help="Filter by type (default A and AAA)")
+@click.option("--type", "-m", metavar="<RECORD-TYPE>", help="Filter by type (default A and AAAA)")
 @click.option("--output", "-o", metavar="<FORMAT>", help="Output format")
 @click.option("--quiet", "-q", is_flag=True, default=False, help="Only display machine IDs")
 @click.option(
@@ -58,7 +58,7 @@ def command(context, name, type, output, quiet, include_unmanaged, zone):
         if type != "*":
             records = filter(lambda r: r.type == type, records)
     else:
-        records = filter(lambda r: r.type in ["A", "AAA", "AAAA"], records)
+        records = filter(lambda r: r.type in ["A", "AAAA"], records)
 
     droplets = []
     if not include_unmanaged:
