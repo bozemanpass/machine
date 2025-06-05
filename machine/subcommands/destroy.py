@@ -51,16 +51,19 @@ def command(context, confirm, delete_dns, all, droplet_ids):
 
         if result and delete_dns and config.dns_zone:
             zone = config.dns_zone
-            host = name
             if d.opt.debug:
-                debug(f"Deleting host record {host}.{zone}")
+                debug(f"Deleting host record {name}.{zone}")
             domain = digitalocean.Domain(token=config.access_token, name=zone)
             if not domain:
                 fatal_error(f"Error: Domain {domain} does not exist, machine destroyed but DNS record not removed")
             record_id = dnsRecordIdFromName(domain, name)
-            if d.opt.debug:
-                debug(f"Deleting dns record id={record_id}")
-            domain.delete_domain_record(id=record_id)
+            if record_id:
+                if d.opt.debug:
+                    debug(f"Deleting dns record id={record_id}")
+                domain.delete_domain_record(id=record_id)
+            else:
+                if d.opt.debug:
+                    debug(f"No dns record found for {name}.{zone}")
 
         if not result:
             fatal_error("Error destroying machine")

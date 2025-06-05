@@ -2,7 +2,7 @@ import click
 import json
 import requests
 
-from machine.log import fatal_error, output
+from machine.log import output
 from machine.subcommands.list import get_droplets
 from machine.types import MainCmdCtx
 
