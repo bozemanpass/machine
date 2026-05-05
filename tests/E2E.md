@@ -2,7 +2,7 @@
 
 These tests verify that `machine` can create and manage real VMs on a cloud provider, including DNS record lifecycle. They are **not** run as part of the normal test suite due to cost and runtime.
 
-Tests can be run against **DigitalOcean** or **Vultr** by setting the `E2E_PROVIDER` environment variable.
+Tests can be run against **DigitalOcean**, **Vultr**, or **GCP** by setting the `E2E_PROVIDER` environment variable.
 
 ## Prerequisites
 
@@ -39,13 +39,30 @@ You need a Vultr account with:
 
 The Vultr API key has full access by default; there is no scope configuration.
 
+### GCP
+
+You need a GCP project with:
+
+- Compute Engine API and Cloud DNS API enabled
+- Billing configured (Cloud DNS requires it)
+- A Cloud DNS managed zone you control (e.g. `gcp.example.com`)
+- An SSH key entry in project metadata (the `ssh-key` config value matches the username portion — see the main README's GCP Config section)
+- Either Application Default Credentials set up locally (`gcloud auth application-default login`) or a service account JSON key file (referenced via `E2E_GCP_CREDENTIALS_FILE`)
+
+If you use a service account, it needs at minimum:
+
+| Role | Used for |
+|---|---|
+| `roles/compute.instanceAdmin.v1` | Create, list, destroy VMs and read project SSH keys |
+| `roles/dns.admin` | Create and remove DNS A records |
+
 ## Environment Variables
 
 ### Provider Selection
 
 | Variable | Required | Description |
 |---|---|---|
-| `E2E_PROVIDER` | No | Provider to test: `digital-ocean` (default) or `vultr` |
+| `E2E_PROVIDER` | No | Provider to test: `digital-ocean` (default), `vultr`, or `gcp` |
 
 ### Common (all providers)
 
@@ -75,6 +92,16 @@ Defaults: region `nyc1`, image `ubuntu-24-04-x64`, size `s-1vcpu-512mb-10gb`
 
 Defaults: region `ewr`, image `2136` (Ubuntu 24.04), size `vc2-1c-1gb`
 
+### GCP
+
+| Variable | Required | Description |
+|---|---|---|
+| `E2E_GCP_PROJECT_ID` | Yes | GCP project ID where test resources are created |
+| `E2E_GCP_DNS_ZONE` | Yes | DNS zone hosted in Cloud DNS (e.g. `gcp.example.com`) |
+| `E2E_GCP_CREDENTIALS_FILE` | No | Path to a service account JSON key file. If unset, [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) are used |
+
+Defaults: region (zone) `us-central1-a`, image `projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64`, size `e2-micro`
+
 ## Running
 
 ### DigitalOcean
@@ -103,16 +130,35 @@ make test-e2e
 uv run pytest tests/test_e2e.py -v -m e2e
 ```
 
+### GCP
+
+```bash
+export E2E_PROVIDER="gcp"
+export E2E_GCP_PROJECT_ID="my-gcp-project-12345"
+export E2E_SSH_KEY="alice"
+export E2E_GCP_DNS_ZONE="gcp.example.com"
+# Optional: point at a service account JSON key. Otherwise ADC is used:
+#   gcloud auth application-default login
+# export E2E_GCP_CREDENTIALS_FILE="$HOME/.config/gcloud/sa.json"
+
+make test-e2e
+# Or directly
+uv run pytest tests/test_e2e.py -v -m e2e
+```
+
 The normal `make test` (and CI) will **skip** these tests automatically.
 
 ## CI
 
-The GitHub Actions workflow (`.github/workflows/e2e-test.yml`) runs e2e tests for both providers in parallel using a matrix strategy. Each provider run requires its own credentials configured in the `e2e` GitHub environment:
+The GitHub Actions workflow (`.github/workflows/e2e-test.yml`) runs e2e tests for each provider in parallel using a matrix strategy. Each provider run requires its own credentials configured in the `e2e` GitHub environment:
 
 | Provider | Secrets | Variables |
 |---|---|---|
 | DigitalOcean | `E2E_DO_TOKEN` | `E2E_SSH_KEY`, `E2E_DO_DNS_ZONE`, `E2E_PROJECT` |
 | Vultr | `E2E_VULTR_API_KEY` | `E2E_SSH_KEY`, `E2E_VULTR_DNS_ZONE` |
+| GCP | *(none yet — see note below)* | `E2E_SSH_KEY`, `E2E_GCP_PROJECT_ID`, `E2E_GCP_DNS_ZONE` |
+
+**GCP in CI**: the workflow passes `E2E_GCP_PROJECT_ID` and `E2E_GCP_DNS_ZONE` through, but does not yet wire up service account credentials (delivering a JSON key file from a secret needs extra workflow steps). Until that's added, the GCP matrix cell will skip with "credentials not configured" — set up to be addressed in a future change.
 
 If credentials for a provider are not configured, that provider's test run will be skipped automatically.
 

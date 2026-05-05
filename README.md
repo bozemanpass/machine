@@ -1,7 +1,7 @@
 # machine
 CLI utility to create and manage VMs
 
-Supports [DigitalOcean](https://www.digitalocean.com/) and [Vultr](https://www.vultr.com/) hosting platforms.
+Supports [DigitalOcean](https://www.digitalocean.com/), [Vultr](https://www.vultr.com/), and [Google Cloud Platform](https://cloud.google.com/) hosting platforms.
 
 ## Prerequisites
 
@@ -55,7 +55,7 @@ sudo mv machine /usr/local/bin/
 ## Usage
 
 ### Config File
-Access token and other settings configured in the file `~/.machine/config.yml`. The config file contains a provider section (either `digital-ocean` or `vultr`) and a `machines` section.
+Access token and other settings configured in the file `~/.machine/config.yml`. The config file contains a provider section (`digital-ocean`, `vultr`, or `gcp`) and a `machines` section.
 
 If only one provider section is present, it is auto-detected. If multiple provider sections exist, add a `provider:` key to select one explicitly:
 
@@ -128,6 +128,53 @@ machines:
 Supported regions: `ewr`, `ord`, `dfw`, `sea`, `lax`, `atl`, `ams`, `lhr`, `fra`, `sjc`, `syd`, `nrt`, `cdg`, `icn`, `mia`, `sgp`, `sto`, `mex`, `mad`, `sao`, `del`, `hnl`, `yto`, `blr`, `jnb`, `bom`, `tlv`
 
 **Note:** Vultr does not have a "projects" concept, so the `project` config key and the `projects` command are not applicable when using the Vultr provider.
+
+#### GCP Config
+
+```yaml
+gcp:
+    project-id: my-gcp-project
+    credentials-file: ~/.config/gcloud/service-account.json
+    ssh-key: alice
+    dns-zone: example.com
+    machine-size: e2-standard-2
+    image: projects/debian-cloud/global/images/family/debian-12
+    region: us-central1-a
+```
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `project-id` | Yes | GCP project ID where all resources (VMs, DNS, etc.) live |
+| `credentials-file` | No | Path to a service account JSON key file. If omitted, [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) are used (e.g. from `gcloud auth application-default login`) |
+| `ssh-key` | Yes | Username GCP associates with an SSH key in the project's `ssh-keys` metadata (see SSH key notes below) |
+| `dns-zone` | No | DNS name of a [Cloud DNS](https://cloud.google.com/dns) managed zone (e.g. `example.com`) |
+| `machine-size` | Yes | GCE machine type (e.g. `e2-standard-2`) |
+| `image` | Yes | Image self-link or family path (e.g. `projects/debian-cloud/global/images/family/debian-12`) |
+| `region` | Yes | GCE *zone* (e.g. `us-central1-a`). Despite the key name, GCP requires a fully-qualified zone, not a region |
+
+**SSH keys:**
+
+GCP doesn't have a named SSH key registry like DigitalOcean or Vultr. Instead, public keys live in the project's `ssh-keys` metadata, and each one is associated with a username. The value of `ssh-key` in the config must match one of those usernames.
+
+Two ways to add a key:
+
+1. **Console** (Compute Engine → Metadata → SSH Keys → Add SSH Key): paste a raw public key, e.g.
+   ```
+   ssh-rsa AAAAB3Nza... alice@laptop
+   ```
+   GCP derives the username from the comment portion at the end — everything before the first `@`. So `alice@laptop` and `alice@example.com` both produce the username `alice`. Set `ssh-key: alice` in the config.
+
+2. **gcloud** — write each line in the explicit `<username>:<key>` form to a file (no auto-derivation here), then upload:
+   ```
+   echo "alice:ssh-rsa AAAAB3Nza... alice@laptop" > keys.txt
+   gcloud compute project-info add-metadata --metadata-from-file ssh-keys=keys.txt
+   ```
+
+The tool reads existing keys but does not create them.
+
+**Other notes:**
+- The `project` config key and re-assignment to projects are not applicable when using GCP — every resource is owned by the project specified in `project-id` at creation time.
+- The `region` field is interpreted as a GCE zone. Validation only checks for plausibility; any zone string with a hyphen is accepted.
 
 #### Machines Section
 
@@ -284,7 +331,7 @@ Destroy one or more machines by instance ID. By default, requires confirmation a
 
 ```
 $ machine destroy --help
-Usage: machine destroy [OPTIONS] [DROPLET-IDS]...
+Usage: machine destroy [OPTIONS] [MACHINE-IDS]...
 
   Destroy one or more machines
 
@@ -325,7 +372,7 @@ Options:
 
 Output formats:
 - Default: `name (id, region, type): ip_address`
-- `--quiet`: droplet IDs only
+- `--quiet`: machine IDs only
 - `--output json`: JSON array of machine objects
 
 JSON output example:
@@ -375,7 +422,7 @@ JSON output example:
   {
     "name": "my-machine",
     "id": "12345678",
-    "droplet-status": "active",
+    "machine-status": "active",
     "cloud-init-status": "done"
   }
 ]
@@ -414,7 +461,7 @@ JSON output example:
 [
   {
     "id": "98765432",
-    "droplet": {
+    "machine": {
       "id": "12345678",
       "name": "my-machine",
       "tags": ["machine:created"],

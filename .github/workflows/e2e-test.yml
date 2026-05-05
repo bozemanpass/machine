@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        provider: [digital-ocean, vultr]
+        provider: [digital-ocean, vultr, gcp]
     steps:
       - name: "Clone project repository"
         uses: actions/checkout@v6
@@ -39,4 +39,10 @@ jobs:
           # Vultr credentials
           E2E_VULTR_API_KEY: ${{ secrets.E2E_VULTR_API_KEY }}
           E2E_VULTR_DNS_ZONE: ${{ vars.E2E_VULTR_DNS_ZONE }}
+          # GCP credentials. E2E_GCP_CREDENTIALS_FILE is intentionally not
+          # wired up here — service account JSON delivery requires extra setup
+          # (decoding a secret to a file). Until that's added, the gcp matrix
+          # cell will skip cleanly when E2E_GCP_PROJECT_ID is unset.
+          E2E_GCP_PROJECT_ID: ${{ vars.E2E_GCP_PROJECT_ID }}
+          E2E_GCP_DNS_ZONE: ${{ vars.E2E_GCP_DNS_ZONE }}
         run: uv run pytest tests/test_e2e.py -v -m e2e

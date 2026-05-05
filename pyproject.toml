@@ -19,6 +19,8 @@ dependencies = [
     "requests>=2.32.4",
     "expandvars==1.0.0",
     "vultr-python>=0.1.5",
+    "google-cloud-compute>=1.19.0",
+    "google-cloud-dns>=0.35.0",
 ]
 
 [project.scripts]
