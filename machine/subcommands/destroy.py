@@ -17,35 +17,35 @@ from machine.util import is_same_session
     default=False,
     help="Include machines not created by this tool",
 )
-@click.argument("droplet-ids", nargs=-1)
+@click.argument("machine-ids", nargs=-1)
 @click.pass_context
-def command(context, confirm, delete_dns, all, droplet_ids):
+def command(context, confirm, delete_dns, all, machine_ids):
     command_context: MainCmdCtx = context.obj
     config = command_context.config
     provider = command_context.provider
 
-    for droplet_id in droplet_ids:
-        vm = provider.get_vm(droplet_id)
+    for machine_id in machine_ids:
+        vm = provider.get_vm(machine_id)
         name = vm.name
 
         if not is_machine_created(vm) and not all:
-            fatal_error(f'ERROR: Cannot destroy droplet "{name}" (id: {vm.id}), it was not created by machine.')
+            fatal_error(f'ERROR: Cannot destroy machine "{name}" (id: {vm.id}), it was not created by this tool.')
 
         if not is_same_session(command_context, vm) and not all:
             fatal_error(
-                f'ERROR: Cannot destroy droplet "{name}" (id: {vm.id}), it was created by a different session of machine.'
+                f'ERROR: Cannot destroy machine "{name}" (id: {vm.id}), it was created by a different session.'
             )
 
         if confirm:
             output(
                 "Type YES (not y or yes or Yes) to confirm that you want to permanently"
-                f' DELETE/DESTROY droplet "{name}" (id: {vm.id})'
+                f' DELETE/DESTROY machine "{name}" (id: {vm.id})'
             )
             confirmation = input()
             if confirmation != "YES":
                 fatal_error("Destroy operation aborted, not confirmed by user")
 
-        result = provider.destroy_vm(droplet_id)
+        result = provider.destroy_vm(machine_id)
 
         if result and delete_dns and config.dns_zone:
             zone = config.dns_zone

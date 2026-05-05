@@ -52,7 +52,7 @@ def dns_record_to_json_obj(dns_record, zone, vm):
 
     return {
         "id": dns_record.id,
-        "droplet": vm,
+        "machine": vm,
         "name": dns_record.name,
         "fqdn": f"{dns_record.name}.{zone}",
         "zone": zone,

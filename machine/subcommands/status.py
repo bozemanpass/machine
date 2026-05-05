@@ -41,7 +41,7 @@ def command(context, id, name, tag, type, region, all, output, quiet, status_che
 
     statuses = []
     for vm in vms:
-        status = {"name": vm.name, "id": vm.id, "droplet-status": vm.status, status_check: "UNKNOWN"}
+        status = {"name": vm.name, "id": vm.id, "machine-status": vm.status, status_check: "UNKNOWN"}
         try:
             r = requests.get(f"http://{vm.ip_address}:4242/cgi-bin/{status_check}")
             if 200 == r.status_code:

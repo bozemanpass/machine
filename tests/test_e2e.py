@@ -6,7 +6,7 @@ the normal test suite. They must be invoked explicitly:
     uv run pytest tests/test_e2e.py -v
 
 Provider selection:
-    E2E_PROVIDER    - Provider name: "digital-ocean" (default) or "vultr"
+    E2E_PROVIDER    - Provider name: "digital-ocean" (default), "vultr", or "gcp"
 
 Required environment variables (all providers):
     E2E_SSH_KEY     - Name of an SSH key already registered with the provider
@@ -18,6 +18,13 @@ Required environment variables (DigitalOcean):
 Required environment variables (Vultr):
     E2E_VULTR_API_KEY  - Vultr API key
     E2E_VULTR_DNS_ZONE - DNS zone hosted at Vultr (e.g. "example.com")
+
+Required environment variables (GCP):
+    E2E_GCP_PROJECT_ID      - GCP project ID where test resources are created
+    E2E_GCP_DNS_ZONE        - DNS zone hosted in Cloud DNS (e.g. "gcp.example.com")
+Optional (GCP):
+    E2E_GCP_CREDENTIALS_FILE - Path to a service account JSON key file
+                               (if unset, Application Default Credentials are used)
 
 Optional environment variables:
     E2E_REGION      - Region slug (default: provider-specific)
@@ -50,6 +57,11 @@ _PROVIDER_DEFAULTS = {
         "image": "2284",
         "size": "vc2-1c-1gb",
     },
+    "gcp": {
+        "region": "us-central1-a",
+        "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64",
+        "size": "e2-micro",
+    },
 }
 
 _defaults = _PROVIDER_DEFAULTS.get(E2E_PROVIDER, _PROVIDER_DEFAULTS["digital-ocean"])
@@ -59,12 +71,15 @@ E2E_SSH_KEY = os.environ.get("E2E_SSH_KEY")
 # Per-provider DNS zones
 E2E_DO_DNS_ZONE = os.environ.get("E2E_DO_DNS_ZONE")
 E2E_VULTR_DNS_ZONE = os.environ.get("E2E_VULTR_DNS_ZONE")
+E2E_GCP_DNS_ZONE = os.environ.get("E2E_GCP_DNS_ZONE")
 
 # Select the DNS zone for the active provider
 if E2E_PROVIDER == "digital-ocean":
     E2E_DNS_ZONE = E2E_DO_DNS_ZONE
 elif E2E_PROVIDER == "vultr":
     E2E_DNS_ZONE = E2E_VULTR_DNS_ZONE
+elif E2E_PROVIDER == "gcp":
+    E2E_DNS_ZONE = E2E_GCP_DNS_ZONE
 else:
     E2E_DNS_ZONE = None
 E2E_REGION = os.environ.get("E2E_REGION", _defaults["region"])
@@ -75,6 +90,8 @@ E2E_SIZE = os.environ.get("E2E_SIZE", _defaults["size"])
 E2E_DO_TOKEN = os.environ.get("E2E_DO_TOKEN")
 E2E_PROJECT = os.environ.get("E2E_PROJECT")
 E2E_VULTR_API_KEY = os.environ.get("E2E_VULTR_API_KEY")
+E2E_GCP_PROJECT_ID = os.environ.get("E2E_GCP_PROJECT_ID")
+E2E_GCP_CREDENTIALS_FILE = os.environ.get("E2E_GCP_CREDENTIALS_FILE")
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +115,12 @@ elif E2E_PROVIDER == "vultr":
         _MISSING.append("E2E_VULTR_API_KEY")
     if not E2E_VULTR_DNS_ZONE:
         _MISSING.append("E2E_VULTR_DNS_ZONE")
+elif E2E_PROVIDER == "gcp":
+    if not E2E_GCP_PROJECT_ID:
+        _MISSING.append("E2E_GCP_PROJECT_ID")
+    if not E2E_GCP_DNS_ZONE:
+        _MISSING.append("E2E_GCP_DNS_ZONE")
+    # E2E_GCP_CREDENTIALS_FILE is optional — falls back to ADC.
 else:
     _MISSING.append(f"E2E_PROVIDER (unknown provider: {E2E_PROVIDER})")
 
@@ -145,6 +168,20 @@ def _write_config(path, **overrides):
         cfg.update(overrides)
         provider_lines = "\n".join(f"  {k}: {v}" for k, v in cfg.items())
         content = f"vultr:\n{provider_lines}\nmachines:\n  e2e-basic:\n    new-user-name: e2euser\n"
+    elif E2E_PROVIDER == "gcp":
+        cfg = {
+            "project-id": E2E_GCP_PROJECT_ID,
+            "ssh-key": E2E_SSH_KEY,
+            "dns-zone": E2E_DNS_ZONE,
+            "machine-size": E2E_SIZE,
+            "image": E2E_IMAGE,
+            "region": E2E_REGION,
+        }
+        if E2E_GCP_CREDENTIALS_FILE:
+            cfg["credentials-file"] = E2E_GCP_CREDENTIALS_FILE
+        cfg.update(overrides)
+        provider_lines = "\n".join(f"  {k}: {v}" for k, v in cfg.items())
+        content = f"gcp:\n{provider_lines}\nmachines:\n  e2e-basic:\n    new-user-name: e2euser\n"
 
     with open(path, "w") as f:
         f.write(content)
@@ -163,7 +200,7 @@ def run_machine(*args, config_file=None, session_id=None):
 
 
 def _extract_instance_id(output_text):
-    """Extract the instance ID from CLI output like 'New droplet created with id: 12345'.
+    """Extract the instance ID from CLI output like 'New machine created with id: 12345'.
 
     Handles both numeric IDs (DigitalOcean) and UUID IDs (Vultr).
     """
@@ -284,12 +321,20 @@ class TestCheck:
         assert "PASS: DNS zone" in combined
 
     def test_check_fails_with_bad_token(self, tmp_path, session_id):
-        """Verify that check fails when the API token is invalid."""
+        """Verify that check fails when the provider rejects the credentials.
+
+        For GCP there is no single "token" field — credentials come from a
+        service account file or ADC. We simulate a similar failure by pointing
+        at a project the credentials cannot access, which causes the first
+        API call (list_ssh_keys) to fail with a permission error.
+        """
         cfg_path = tmp_path / "config.yml"
         if E2E_PROVIDER == "digital-ocean":
             _write_config(cfg_path, **{"access-token": "invalid-token-for-e2e-test"})
         elif E2E_PROVIDER == "vultr":
             _write_config(cfg_path, **{"api-key": "invalid-token-for-e2e-test"})
+        elif E2E_PROVIDER == "gcp":
+            _write_config(cfg_path, **{"project-id": f"nonexistent-project-{uuid.uuid4().hex[:8]}"})
         result = run_machine("check", config_file=cfg_path, session_id=session_id)
         combined = result.stdout + result.stderr
         assert result.returncode != 0, f"check should have failed with bad token: {combined}"
