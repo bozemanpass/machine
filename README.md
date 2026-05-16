@@ -152,6 +152,13 @@ gcp:
 | `image` | Yes | Image self-link or family path (e.g. `projects/debian-cloud/global/images/family/debian-12`) |
 | `region` | Yes | GCE *zone* (e.g. `us-central1-a`). Despite the key name, GCP requires a fully-qualified zone, not a region |
 
+**Authentication:**
+
+`machine` supports two ways to authenticate with GCP:
+
+- **Application Default Credentials (ADC)** — omit `credentials-file` and `machine` falls back to ADC. The simplest way to set this up is to run `gcloud auth application-default login` once; it stores credentials under `~/.config/gcloud` that `machine` picks up automatically. This is the easiest option for interactive use on a workstation that already has the `gcloud` CLI, and avoids creating and managing a long-lived key file.
+- **Service account key file** — set `credentials-file` to the path of a service account JSON key. This is appropriate for unattended environments or when you want a dedicated, tightly-scoped identity.
+
 **SSH keys:**
 
 GCP doesn't have a named SSH key registry like DigitalOcean or Vultr. Instead, public keys live in the project's `ssh-keys` metadata, and each one is associated with a username. The value of `ssh-key` in the config must match one of those usernames.

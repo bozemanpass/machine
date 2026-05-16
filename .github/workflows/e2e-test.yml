@@ -15,6 +15,9 @@ jobs:
     name: "E2E Tests (${{ matrix.provider }})"
     runs-on: ubuntu-latest
     environment: e2e
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -28,6 +31,12 @@ jobs:
         run: uv python install 3.13
       - name: "Install dependencies"
         run: uv sync
+      - name: "Authenticate to GCP via Workload Identity Federation"
+        if: matrix.provider == 'gcp'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.E2E_GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.E2E_GCP_SERVICE_ACCOUNT }}
       - name: "Run E2E tests"
         env:
           E2E_PROVIDER: ${{ matrix.provider }}
@@ -39,10 +48,9 @@ jobs:
           # Vultr credentials
           E2E_VULTR_API_KEY: ${{ secrets.E2E_VULTR_API_KEY }}
           E2E_VULTR_DNS_ZONE: ${{ vars.E2E_VULTR_DNS_ZONE }}
-          # GCP credentials. E2E_GCP_CREDENTIALS_FILE is intentionally not
-          # wired up here — service account JSON delivery requires extra setup
-          # (decoding a secret to a file). Until that's added, the gcp matrix
-          # cell will skip cleanly when E2E_GCP_PROJECT_ID is unset.
+          # GCP credentials. The auth step above sets GOOGLE_APPLICATION_CREDENTIALS
+          # to a short-lived credential file; the provider picks it up via ADC
+          # (google.auth.default()) when E2E_GCP_CREDENTIALS_FILE is unset.
           E2E_GCP_PROJECT_ID: ${{ vars.E2E_GCP_PROJECT_ID }}
           E2E_GCP_DNS_ZONE: ${{ vars.E2E_GCP_DNS_ZONE }}
         run: uv run pytest tests/test_e2e.py -v -m e2e

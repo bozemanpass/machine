@@ -156,9 +156,9 @@ The GitHub Actions workflow (`.github/workflows/e2e-test.yml`) runs e2e tests fo
 |---|---|---|
 | DigitalOcean | `E2E_DO_TOKEN` | `E2E_SSH_KEY`, `E2E_DO_DNS_ZONE`, `E2E_PROJECT` |
 | Vultr | `E2E_VULTR_API_KEY` | `E2E_SSH_KEY`, `E2E_VULTR_DNS_ZONE` |
-| GCP | *(none yet — see note below)* | `E2E_SSH_KEY`, `E2E_GCP_PROJECT_ID`, `E2E_GCP_DNS_ZONE` |
+| GCP | *(none)* | `E2E_SSH_KEY`, `E2E_GCP_WIF_PROVIDER`, `E2E_GCP_SERVICE_ACCOUNT`, `E2E_GCP_PROJECT_ID`, `E2E_GCP_DNS_ZONE` |
 
-**GCP in CI**: the workflow passes `E2E_GCP_PROJECT_ID` and `E2E_GCP_DNS_ZONE` through, but does not yet wire up service account credentials (delivering a JSON key file from a secret needs extra workflow steps). Until that's added, the GCP matrix cell will skip with "credentials not configured" — set up to be addressed in a future change.
+**GCP in CI**: GCP authenticates with keyless [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation) rather than a service-account JSON key — no secret is needed. Setting this up for a new project or fork (creating the service account, workload identity pool, OIDC provider, and IAM bindings) is documented in [`.github/GCP_CI_SETUP.md`](../.github/GCP_CI_SETUP.md).
 
 If credentials for a provider are not configured, that provider's test run will be skipped automatically.
 
