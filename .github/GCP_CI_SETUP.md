@@ -68,7 +68,25 @@ REPO="your-org/your-repo"              # the GitHub owner/repo, e.g. stirlingbri
 REPO_OWNER="${REPO%%/*}"
 ```
 
-### 1a. Service account and roles
+### 1a. Enable required APIs
+
+```bash
+gcloud services enable \
+  compute.googleapis.com \
+  dns.googleapis.com \
+  iam.googleapis.com \
+  sts.googleapis.com \
+  iamcredentials.googleapis.com \
+  --project="$PROJECT_ID"
+```
+
+`sts.googleapis.com` (Security Token Service) and
+`iamcredentials.googleapis.com` (IAM Service Account Credentials) are easy to
+miss — they are not enabled by default in many projects, and the WIF token
+exchange fails at runtime with a `SERVICE_DISABLED` 403 without them. After
+enabling, allow a few minutes for the change to propagate.
+
+### 1b. Service account and roles
 
 The `machine` GCP provider creates instances on the `default` network and
 manages Cloud DNS records. The minimal role set is:
@@ -91,7 +109,7 @@ for role in roles/compute.instanceAdmin.v1 roles/dns.admin; do
 done
 ```
 
-### 1b. Workload Identity Pool
+### 1c. Workload Identity Pool
 
 ```bash
 gcloud iam workload-identity-pools create "$POOL_ID" \
@@ -99,7 +117,7 @@ gcloud iam workload-identity-pools create "$POOL_ID" \
   --display-name="GitHub Actions"
 ```
 
-### 1c. OIDC provider
+### 1d. OIDC provider
 
 > **Watch the line continuations.** Each `\` must be the last character on its
 > line. If a long line wraps in your terminal or editor without a `\`, gcloud
@@ -119,7 +137,7 @@ gcloud iam workload-identity-pools providers create-oidc "$PROVIDER_ID" \
   --attribute-condition="assertion.repository_owner == '${REPO_OWNER}'"
 ```
 
-### 1d. Allow the repository to impersonate the service account
+### 1e. Allow the repository to impersonate the service account
 
 The `principalSet://` member narrows access to one specific repository (not
 the whole org). Note this path uses the project **number**.
@@ -134,7 +152,7 @@ gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
 To restrict further to a single branch, bind
 `attribute.ref/refs/heads/main` instead of `attribute.repository/...`.
 
-### 1e. Collect the values for GitHub
+### 1f. Collect the values for GitHub
 
 ```bash
 echo "E2E_GCP_WIF_PROVIDER=projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/providers/${PROVIDER_ID}"
@@ -226,6 +244,11 @@ quick fix.
 require the project *number*. Everything else (gcloud `--project=`, the
 service-account email domain, `E2E_GCP_PROJECT_ID`) uses the alphanumeric
 project *ID*. See the identifier table above.
+
+**`Unable to acquire impersonated credentials` with `SERVICE_DISABLED`.** A
+required API is not enabled in the project — most commonly
+`iamcredentials.googleapis.com`. Run the `gcloud services enable` command from
+step 1a and wait a few minutes for it to propagate, then retry the job.
 
 **Auth step fails with a 403 / permission denied.** Check that the job has
 `permissions: id-token: write`, that the provider's `attribute-condition`
