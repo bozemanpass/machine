@@ -34,10 +34,11 @@ def command(context):
         output("\nAPI authentication failed, skipping remaining checks.")
         raise SystemExit(1)
 
-    # 2. Check SSH key exists
-    if cfg.ssh_key:
-        key = provider.get_ssh_key(cfg.ssh_key)
-        report("SSH key", key is not None, cfg.ssh_key)
+    # 2. Check SSH keys exist
+    if cfg.ssh_keys:
+        for ssh_key_name in cfg.ssh_keys:
+            key = provider.get_ssh_key(ssh_key_name)
+            report("SSH key", key is not None, ssh_key_name)
     else:
         report("SSH key", False, "not configured")
 

@@ -19,6 +19,12 @@ def _validate_dns_zone(provider, dns_zone):
         fatal_error(f"Error: DNS zone '{dns_zone}' not found in {provider.provider_name}. Available zones: {zones_str}")
 
 
+def _verify_ssh_keys(provider, ssh_key_names):
+    for ssh_key_name in ssh_key_names:
+        if not provider.get_ssh_key(ssh_key_name):
+            fatal_error(f"Error: SSH key '{ssh_key_name}' not found in {provider.provider_name}")
+
+
 @click.command(help="Create a machine")
 @click.option("--name", "-n", required=True, metavar="<MACHINE-NAME>", help="Name for new machine")
 @click.option("--tag", "-t", metavar="<TAG-TEXT>", help="tag to be applied to new machine")
@@ -52,15 +58,13 @@ def command(context, name, tag, type, region, machine_size, image, wait_for_ip, 
         if not machine_config:
             fatal_error(f"Error: machine type {type} is not defined")
         fqdn = f"{name}.{config.dns_zone}" if config.dns_zone else None
-        user_data = get_user_data(provider, config.ssh_key, fqdn, machine_config)
+        user_data = get_user_data(provider, config.ssh_keys, fqdn, machine_config)
         if d.opt.debug:
             info("user-data is:")
             info(user_data)
 
-    # Verify SSH key exists
-    ssh_key = provider.get_ssh_key(config.ssh_key)
-    if not ssh_key:
-        fatal_error(f"Error: SSH key '{config.ssh_key}' not found in {provider.provider_name}")
+    # Verify SSH keys exist
+    _verify_ssh_keys(provider, config.ssh_keys)
 
     provider.validate_region(region)
     provider.validate_image(image)
@@ -79,7 +83,7 @@ def command(context, name, tag, type, region, machine_size, image, wait_for_ip, 
         region=region if region is not None else config.region,
         image=image if image is not None else config.image,
         size=machine_size if machine_size is not None else config.machine_size,
-        ssh_key_name=config.ssh_key,
+        ssh_key_names=config.ssh_keys,
         tags=tags,
         user_data=user_data,
     )

@@ -111,10 +111,11 @@ class GcpProvider(CloudProvider):
             status=instance.status,
         )
 
-    def create_vm(self, name, region, image, size, ssh_key_name, tags, user_data) -> VM:
+    def create_vm(self, name, region, image, size, ssh_key_names, tags, user_data) -> VM:
         zone = region
-        if not self.get_ssh_key(ssh_key_name):
-            fatal_error(f"Error: SSH key '{ssh_key_name}' not found in GCP project metadata")
+        for ssh_key_name in ssh_key_names:
+            if not self.get_ssh_key(ssh_key_name):
+                fatal_error(f"Error: SSH key '{ssh_key_name}' not found in GCP project metadata")
 
         compute_v1 = self._compute_v1
 

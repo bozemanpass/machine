@@ -43,10 +43,13 @@ class DigitalOceanProvider(CloudProvider):
         self.token = provider_config["access-token"]
         self._manager = digitalocean.Manager(token=self.token)
 
-    def create_vm(self, name, region, image, size, ssh_key_name, tags, user_data) -> VM:
-        ssh_key = self._get_do_ssh_key(ssh_key_name)
-        if not ssh_key:
-            fatal_error(f"Error: SSH key '{ssh_key_name}' not found in DigitalOcean")
+    def create_vm(self, name, region, image, size, ssh_key_names, tags, user_data) -> VM:
+        ssh_keys = []
+        for ssh_key_name in ssh_key_names:
+            ssh_key = self._get_do_ssh_key(ssh_key_name)
+            if not ssh_key:
+                fatal_error(f"Error: SSH key '{ssh_key_name}' not found in DigitalOcean")
+            ssh_keys.append(ssh_key)
 
         droplet = digitalocean.Droplet(
             token=self.token,
@@ -54,7 +57,7 @@ class DigitalOceanProvider(CloudProvider):
             region=region,
             image=image,
             size_slug=size,
-            ssh_keys=[ssh_key],
+            ssh_keys=ssh_keys,
             tags=tags,
             user_data=user_data,
             backups=False,

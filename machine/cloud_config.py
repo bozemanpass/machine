@@ -5,7 +5,7 @@ from machine.provider import CloudProvider
 from machine.types import MachineConfig
 
 
-def get_user_data(provider: CloudProvider, ssh_key_name: str, fqdn: str, machine_config: MachineConfig):
+def get_user_data(provider: CloudProvider, ssh_key_names: list, fqdn: str, machine_config: MachineConfig):
     if not fqdn:
         fqdn = ""
 
@@ -13,10 +13,12 @@ def get_user_data(provider: CloudProvider, ssh_key_name: str, fqdn: str, machine
     if not script_args:
         script_args = ""
 
-    ssh_key = provider.get_ssh_key(ssh_key_name)
-    if not ssh_key:
-        fatal_error(f"Error: SSH key '{ssh_key_name}' not found in {provider.provider_name}")
-    ssh_public_key = ssh_key.public_key
+    public_keys = []
+    for ssh_key_name in ssh_key_names:
+        ssh_key = provider.get_ssh_key(ssh_key_name)
+        if not ssh_key:
+            fatal_error(f"Error: SSH key '{ssh_key_name}' not found in {provider.provider_name}")
+        public_keys.append(ssh_key.public_key)
     escaped_args = script_args.replace('"', '\\"')
 
     cloud_env = {
@@ -27,6 +29,7 @@ def get_user_data(provider: CloudProvider, ssh_key_name: str, fqdn: str, machine
 
     # Exand here because otherwise escaping the vars properly for nested scripts is a guessing game
     escaped_args = expand(escaped_args, environ=cloud_env)
+    authorized_keys = "\n".join(f"      - {key}" for key in public_keys)
     cloud_config = f"""#cloud-config
 users:
   - name: {machine_config.new_user_name}
@@ -34,7 +37,7 @@ users:
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     ssh-authorized-keys:
-      - {ssh_public_key}
+{authorized_keys}
 """
     if machine_config.script_url and machine_config.script_dir and machine_config.script_path:
         cloud_config += f"""

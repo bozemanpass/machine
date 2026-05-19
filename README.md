@@ -87,7 +87,7 @@ machines:
 | Key | Required | Description |
 |-----|----------|-------------|
 | `access-token` | Yes | DigitalOcean API access token |
-| `ssh-key` | Yes | Name of the SSH key in your DigitalOcean account to use for new machines |
+| `ssh-key` | Yes | Name of an SSH key in your DigitalOcean account to use for new machines, or a list of names (see [Multiple SSH keys](#multiple-ssh-keys)) |
 | `dns-zone` | No | DNS zone for automatic DNS record creation/deletion |
 | `machine-size` | Yes | Default machine size slug (e.g. `s-4vcpu-8gb`) |
 | `image` | Yes | Default image name (e.g. `ubuntu-22-04-x64`) |
@@ -119,7 +119,7 @@ machines:
 | Key | Required | Description |
 |-----|----------|-------------|
 | `api-key` | Yes | Vultr API key (from https://my.vultr.com/settings/#settingsapi) |
-| `ssh-key` | Yes | Name of the SSH key in your Vultr account to use for new machines |
+| `ssh-key` | Yes | Name of an SSH key in your Vultr account to use for new machines, or a list of names (see [Multiple SSH keys](#multiple-ssh-keys)) |
 | `dns-zone` | No | DNS zone for automatic DNS record creation/deletion |
 | `machine-size` | Yes | Vultr plan slug (e.g. `vc2-1c-1gb`). Use `machine list-plans` or the Vultr API to list available plans |
 | `image` | Yes | Vultr OS ID (numeric, e.g. `2136` for Ubuntu 24.04). Use `machine list-os` or the Vultr API to list available OS IDs |
@@ -146,7 +146,7 @@ gcp:
 |-----|----------|-------------|
 | `project-id` | Yes | GCP project ID where all resources (VMs, DNS, etc.) live |
 | `credentials-file` | No | Path to a service account JSON key file. If omitted, [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) are used (e.g. from `gcloud auth application-default login`) |
-| `ssh-key` | Yes | Username GCP associates with an SSH key in the project's `ssh-keys` metadata (see SSH key notes below) |
+| `ssh-key` | Yes | Username GCP associates with an SSH key in the project's `ssh-keys` metadata (see SSH key notes below), or a list of usernames (see [Multiple SSH keys](#multiple-ssh-keys)) |
 | `dns-zone` | No | DNS name of a [Cloud DNS](https://cloud.google.com/dns) managed zone (e.g. `example.com`) |
 | `machine-size` | Yes | GCE machine type (e.g. `e2-standard-2`) |
 | `image` | Yes | Image self-link or family path (e.g. `projects/debian-cloud/global/images/family/debian-12`) |
@@ -202,6 +202,27 @@ If `script-url`, `script-dir`, and `script-path` are all provided, the script is
 - `$MACHINE_SCRIPT_URL` — URL of the initialization script
 - `$MACHINE_SCRIPT_DIR` — directory path for the script
 - `$MACHINE_FQDN` — fully qualified domain name of the machine (if DNS is configured)
+
+#### Multiple SSH keys
+
+The `ssh-key` config value accepts either a single key name or a list of names. When a list is given, every key is installed on new machines (both on the provider account's default user and, when `--initialize` is used, on the new user created by cloud-init).
+
+```yaml
+digital-ocean:
+    access-token: ${DO_API_TOKEN}
+    ssh-key:
+        - alice-laptop
+        - bob-laptop
+    machine-size: s-4vcpu-8gb
+    image: ubuntu-22-04-x64
+    region: nyc3
+```
+
+The single-name form is unchanged and remains fully supported:
+
+```yaml
+    ssh-key: my-ssh-key-name
+```
 
 #### Environment Variable Substitution
 
@@ -328,7 +349,7 @@ JSON output example:
 
 When `--update-dns` is enabled (the default), the command waits for the instance's IP address and creates an A record in the configured `dns-zone` with a 5-minute TTL.
 
-When `--initialize` is enabled (the default), a cloud-config user-data payload is generated that creates a non-root user with sudo access, installs the SSH key, and optionally downloads and runs an initialization script.
+When `--initialize` is enabled (the default), a cloud-config user-data payload is generated that creates a non-root user with sudo access, installs the configured SSH key(s), and optionally downloads and runs an initialization script.
 
 If a `project` is configured (DigitalOcean only), the machine is automatically assigned to that project.
 

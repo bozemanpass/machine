@@ -1,7 +1,7 @@
 import os
 import pytest
 from unittest.mock import patch
-from machine.config import _expand_env_vars
+from machine.config import _expand_env_vars, _get_ssh_keys
 
 
 class TestExpandEnvVars:
@@ -72,3 +72,29 @@ class TestExpandEnvVars:
             data = {"list": ["${V}", "fixed"], "nested": {"k": "${V}"}}
             result = _expand_env_vars(data)
             assert result == {"list": ["replaced", "fixed"], "nested": {"k": "replaced"}}
+
+
+class TestGetSshKeys:
+    """The 'ssh-key' config value accepts either a single name or a list of
+    names; both forms normalize to a non-empty list."""
+
+    def test_single_name_returns_one_element_list(self):
+        assert _get_ssh_keys({"ssh-key": "my-key"}, "digital-ocean") == ["my-key"]
+
+    def test_list_of_names_preserved(self):
+        assert _get_ssh_keys({"ssh-key": ["alice", "bob"]}, "digital-ocean") == ["alice", "bob"]
+
+    def test_list_elements_coerced_to_str(self):
+        assert _get_ssh_keys({"ssh-key": [1, 2]}, "digital-ocean") == ["1", "2"]
+
+    def test_missing_key_exits(self):
+        with pytest.raises(SystemExit):
+            _get_ssh_keys({}, "digital-ocean")
+
+    def test_empty_list_exits(self):
+        with pytest.raises(SystemExit):
+            _get_ssh_keys({"ssh-key": []}, "digital-ocean")
+
+    def test_unsupported_type_exits(self):
+        with pytest.raises(SystemExit):
+            _get_ssh_keys({"ssh-key": {"unexpected": "mapping"}}, "digital-ocean")
