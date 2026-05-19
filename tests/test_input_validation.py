@@ -207,6 +207,69 @@ class TestMissingConfigSections:
         assert "Traceback" not in result.stderr
 
 
+class TestMultipleSshKeys:
+    """Issue: the 'ssh-key' config value may be a single name or a list of
+    names, and existing single-name configs must keep working."""
+
+    @pytest.fixture()
+    def config_dir(self, tmp_path):
+        return tmp_path
+
+    def test_single_ssh_key_still_accepted(self, config_dir):
+        """The original scalar form must remain backwards compatible."""
+        config_file = config_dir / "config.yml"
+        write_config(config_file, valid_config())
+        result = run_machine("--config-file", str(config_file), "types")
+        assert result.returncode == 0
+        assert "web-server" in result.stdout
+
+    def test_list_of_ssh_keys_accepted(self, config_dir):
+        """A YAML list of key names should parse without a config error."""
+        config_file = config_dir / "config.yml"
+        write_config(
+            config_file,
+            """\
+            digital-ocean:
+              access-token: fake-token
+              ssh-key:
+                - first-key
+                - second-key
+              machine-size: s-1vcpu-1gb
+              image: ubuntu-22-04-x64
+              region: nyc1
+            machines:
+              web-server:
+                new-user-name: admin
+            """,
+        )
+        result = run_machine("--config-file", str(config_file), "types")
+        assert result.returncode == 0
+        assert "web-server" in result.stdout
+        assert "Traceback" not in result.stderr
+
+    def test_empty_ssh_key_list_rejected(self, config_dir):
+        """An explicitly empty list is not a valid configuration."""
+        config_file = config_dir / "config.yml"
+        write_config(
+            config_file,
+            """\
+            digital-ocean:
+              access-token: fake-token
+              ssh-key: []
+              machine-size: s-1vcpu-1gb
+              image: ubuntu-22-04-x64
+              region: nyc1
+            machines:
+              web-server:
+                new-user-name: admin
+            """,
+        )
+        result = run_machine("--config-file", str(config_file), "types")
+        assert result.returncode != 0
+        assert "ssh-key" in result.stderr
+        assert "Traceback" not in result.stderr
+
+
 class TestCreateNoInitialize:
     """--no-initialize should work without a machine type and without crashing."""
 

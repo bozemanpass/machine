@@ -60,6 +60,21 @@ def _require_key(d, key, section_name):
     return d[key]
 
 
+def _get_ssh_keys(provider_config, section_name) -> list:
+    """Read the 'ssh-key' config value, accepting either a single name (a
+    string) or a list of names. Always returns a non-empty list of names."""
+    value = _require_key(provider_config, "ssh-key", section_name)
+    if isinstance(value, str):
+        keys = [value]
+    elif isinstance(value, list):
+        keys = [str(k) for k in value]
+    else:
+        fatal_error(f"Config key 'ssh-key' in '{section_name}' section must be a name or a list of names")
+    if not keys:
+        fatal_error(f"Config key 'ssh-key' in '{section_name}' section must specify at least one SSH key")
+    return keys
+
+
 def get(config_file_name: str) -> Config:
     config = _load_config_data(config_file_name)
 
@@ -84,7 +99,7 @@ def get(config_file_name: str) -> Config:
     return Config(
         provider_name=provider_name,
         provider_config=provider_config,
-        ssh_key=_require_key(provider_config, "ssh-key", provider_name),
+        ssh_keys=_get_ssh_keys(provider_config, provider_name),
         dns_zone=provider_config.get("dns-zone"),
         machine_size=_require_key(provider_config, "machine-size", provider_name),
         image=_require_key(provider_config, "image", provider_name),

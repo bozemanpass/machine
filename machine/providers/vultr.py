@@ -34,16 +34,19 @@ class VultrProvider(CloudProvider):
         self._api_key = provider_config["api-key"]
         self._client = Vultr(self._api_key)
 
-    def create_vm(self, name, region, image, size, ssh_key_name, tags, user_data) -> VM:
-        ssh_key = self._get_vultr_ssh_key(ssh_key_name)
-        if not ssh_key:
-            fatal_error(f"Error: SSH key '{ssh_key_name}' not found in Vultr")
+    def create_vm(self, name, region, image, size, ssh_key_names, tags, user_data) -> VM:
+        sshkey_ids = []
+        for ssh_key_name in ssh_key_names:
+            ssh_key = self._get_vultr_ssh_key(ssh_key_name)
+            if not ssh_key:
+                fatal_error(f"Error: SSH key '{ssh_key_name}' not found in Vultr")
+            sshkey_ids.append(ssh_key["id"])
 
         kwargs = {
             "os_id": int(image),
             "label": name,
             "hostname": name,
-            "sshkey_id": [ssh_key["id"]],
+            "sshkey_id": sshkey_ids,
             "tags": tags,
             "backups": "disabled",
         }

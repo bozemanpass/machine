@@ -17,7 +17,7 @@ class CliOptions:
 class Config:
     provider_name: str
     provider_config: dict
-    ssh_key: str
+    ssh_keys: list
     dns_zone: str
     machine_size: str
     image: str

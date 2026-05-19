@@ -31,7 +31,7 @@ class DNSRecord:
 
 class CloudProvider(ABC):
     @abstractmethod
-    def create_vm(self, name, region, image, size, ssh_key_name, tags, user_data) -> VM:
+    def create_vm(self, name, region, image, size, ssh_key_names, tags, user_data) -> VM:
         pass
 
     @abstractmethod
