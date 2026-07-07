@@ -5,7 +5,7 @@ import click
 from machine import config
 from machine import constants
 from machine.di import d
-from machine.log import output
+from machine.log import fatal_error, output
 from machine.providers import create_provider
 from machine.subcommands import check, create, destroy, info, list, projects, ssh_keys, domains, list_domain, types, status
 from machine.types import CliOptions, MainCmdCtx
@@ -60,3 +60,63 @@ main.add_command(projects.command, "projects")
 main.add_command(ssh_keys.command, "ssh-keys")
 main.add_command(types.command, "types")
 main.add_command(status.command, "status")
+
+
+def _provider_api_exception_types():
+    """Base exception classes raised by the cloud provider SDKs on API failures.
+
+    Collected lazily so importing this module (and the common DigitalOcean path)
+    does not pull in every provider SDK up front.
+    """
+    import digitalocean
+    from vultr import VultrException
+
+    types = [digitalocean.Error, VultrException]
+    try:
+        from google.api_core import exceptions as google_api_exceptions
+        from google.auth import exceptions as google_auth_exceptions
+
+        types.append(google_api_exceptions.GoogleAPICallError)
+        types.append(google_auth_exceptions.GoogleAuthError)
+    except ImportError:
+        pass
+    return tuple(types)
+
+
+def _friendly_provider_error(e) -> str:
+    """Turn a raw provider SDK exception into a clear, actionable message."""
+    detail = str(e).strip()
+    lowered = detail.lower()
+    auth_markers = (
+        "unable to authenticate",
+        "authentication",
+        "unauthenticated",
+        "unauthorized",
+        "invalid api key",
+        "permission",
+        "forbidden",
+        "401",
+        "403",
+    )
+    if any(marker in lowered for marker in auth_markers):
+        return (
+            "Error: the cloud provider rejected the request as unauthenticated or unauthorized.\n"
+            "Check that the API token/key in your config file is correct and has not expired."
+        )
+    return f"Error: cloud provider request failed: {detail}"
+
+
+def cli():
+    """Console-script entry point.
+
+    Wraps the Click group so that errors raised by a provider's API (for
+    example an expired or invalid access token) are reported as a clear
+    message instead of an uncaught Python traceback (#95). Pass --debug to
+    see the underlying traceback.
+    """
+    try:
+        main()
+    except _provider_api_exception_types() as e:
+        if d.opt is not None and d.opt.debug:
+            raise
+        fatal_error(_friendly_provider_error(e))
