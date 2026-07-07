@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [project.scripts]
-machine = "machine.main:main"
+machine = "machine.main:cli"
 
 [project.urls]
 Homepage = "https://github.com/stirlingbridge/machine"
